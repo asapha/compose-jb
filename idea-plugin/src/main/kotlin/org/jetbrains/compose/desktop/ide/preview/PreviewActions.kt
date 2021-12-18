@@ -39,7 +39,6 @@ class RefreshOrRunPreviewAction : AnAction(PreviewIcons.COMPOSE) {
         val previewLocation = ReadAction.compute<PreviewLocation?, Throwable> {
             val editor = e.dataContext.getData(CommonDataKeys.EDITOR)
             if (editor != null) {
-                e.presentation.isEnabled = false
                 parentPreviewAtCaretOrNull(editor)
             } else null
         }
