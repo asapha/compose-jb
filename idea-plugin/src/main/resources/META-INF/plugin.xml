@@ -1,6 +1,6 @@
 <idea-plugin>
-    <id>org.jetbrains.compose.desktop.ide</id>
-    <name>Compose Multiplatform IDE Support</name>
+    <id>com.azefsw.compose.ide</id>
+    <name>[ASAPHA] Compose Multiplatform IDE Support</name>
     <vendor>JetBrains</vendor>
     <description>
         <![CDATA[
