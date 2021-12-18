@@ -34,22 +34,34 @@ class RunPreviewAction(
 internal const val PREVIEW_EDITOR_TOOLBAR_GROUP_ID = "Compose.Desktop.Preview.Editor.Toolbar"
 
 class RefreshOrRunPreviewAction : AnAction(PreviewIcons.COMPOSE) {
+    private var lastPreviewLocation: PreviewLocation? = null
+
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val previewLocation = ReadAction.compute<PreviewLocation?, Throwable> {
+        val previewLocation = getPreviewLocation(e)
+        if (previewLocation != null) {
+            lastPreviewLocation = previewLocation
+            buildPreviewViaGradle(project, previewLocation)
+        }
+    }
+
+    private fun getPreviewLocation(e: AnActionEvent): PreviewLocation? {
+        return ReadAction.compute<PreviewLocation?, Throwable> {
             val editor = e.dataContext.getData(CommonDataKeys.EDITOR)
             if (editor != null) {
                 parentPreviewAtCaretOrNull(editor)
             } else null
-        }
-        if (previewLocation != null) {
-            buildPreviewViaGradle(project, previewLocation)
-        }
+
+            // If the user runs the action when the caret isn't on a preview function, simply re-run
+            // the last preview.
+        } ?: lastPreviewLocation
     }
 }
 
 private fun buildPreviewViaGradle(project: Project, previewLocation: PreviewLocation) {
-    val previewToolWindow = ToolWindowManager.getInstance(project).getToolWindow("Desktop Preview")
+    val previewToolWindow = ToolWindowManager
+        .getInstance(project)
+        .getToolWindow("Desktop Preview")
     previewToolWindow?.setAvailable(true)
 
     val gradleVmOptions = GradleSettings.getInstance(project).gradleVmOptions
@@ -67,9 +79,12 @@ private fun buildPreviewViaGradle(project: Project, previewLocation: PreviewLoca
             "-Pcompose.desktop.preview.ide.port=$gradleCallbackPort"
         ).joinToString(" ")
     SwingUtilities.invokeLater {
-        ToolWindowManager.getInstance(project).getToolWindow("Desktop Preview")?.activate {
-            previewService.buildStarted()
-        }
+        ToolWindowManager
+            .getInstance(project)
+            .getToolWindow("Desktop Preview")
+            ?.activate {
+                previewService.buildStarted()
+            }
     }
     runTask(
         settings,
@@ -80,6 +95,7 @@ private fun buildPreviewViaGradle(project: Project, previewLocation: PreviewLoca
             override fun onSuccess() {
                 previewService.buildFinished(success = true)
             }
+
             override fun onFailure() {
                 previewService.buildFinished(success = false)
             }
